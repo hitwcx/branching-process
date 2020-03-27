@@ -9,10 +9,10 @@ Created on Sat Nov 23 11:19:11 2019
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import reduce
-
-n_g = 3
+# note that n_g should be at least big enough to cover enough number of generations
+n_g = 6
 t_array = np.zeros(shape=(n_g+1,2**(n_g+1)-1), dtype=float, order='F')
-t=8
+t=6
 #t_init = np.random.exponential(scale=4.0, size=1000)
 t_init = np.random.uniform(2,4,1000)
 
@@ -79,7 +79,6 @@ for i in range(1,trees2.shape[1]-1):
     #if np.all(trees2[:,i]==trees2[0,i]):
         #kep_lst.remove(i)
 Tree=trees2[:,kep_lst]
-Tree=np.vstack([Tree,Tree[-1,:]])
 
 print(Tree)
 #print(trees2)
@@ -102,5 +101,5 @@ angle=np.zeros((T.shape[0],T.shape[1]))
 # %%
 angle[0,:]=theta[0]
 dif=np.diff(T,axis=1)
-
+print(dif)
 # %%
