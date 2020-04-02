@@ -9,12 +9,12 @@ Created on Sat Nov 23 11:19:11 2019
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import reduce
-# note that n_g should be at least big enough to cover enough number of generations
+
 n_g = 6
 t_array = np.zeros(shape=(n_g+1,2**(n_g+1)-1), dtype=float, order='F')
-t=6
+t=9
 #t_init = np.random.exponential(scale=4.0, size=1000)
-t_init = np.random.uniform(2,4,1000)
+t_init = np.random.uniform(2,3,1000)
 
 # %% randomly grow a full tree
 def gen_tree():
@@ -56,7 +56,7 @@ for i in range(n_rep):
     tree_sum.append(tree_data[1])
     levels.append(tree_data[0])
 
-print(trees)
+print(np.round(trees,1))
 levels
 
 # %% flatten the list of times of branches
@@ -64,23 +64,30 @@ def tree_transform(trees):
     trees_unlist=reduce(lambda x,y: x+y,trees)
     return trees_unlist
 trees2=tree_transform(trees)
+print(np.round(trees2,2))
 
+# %% from full branches (including main paths) to only branches
+ext_lst=list(range(trees2.shape[1]))
+rem_lst=[]
+peels=[]
 
-# from full branches (including main paths) to only branches
-kep_lst=list(range(trees2.shape[1]))
-for i in range(1,trees2.shape[1]-1):
-    flag=[]
-    for j in range(i):
-        if i*2-j<trees2.shape[1]:
-            flag.append(all(trees2[:,j]==trees2[:,i*2-j]))
-    #print(flag)
-    if any(flag) or np.all(trees2[:,i]==trees2[0,i]):
-        kep_lst.remove(i)
-    #if np.all(trees2[:,i]==trees2[0,i]):
-        #kep_lst.remove(i)
-Tree=trees2[:,kep_lst]
+while len(ext_lst)!=1:
+    ext_copy=ext_lst.copy()
+    for i in range(1,len(ext_lst)-1):
+        if all(trees2[:,ext_lst[i-1]]==trees2[:,ext_lst[i+1]]):
+            rem_lst.append(ext_lst[i])
+            peels.extend([ext_lst[i-1],ext_lst[i+1]])
+            ext_copy.remove(ext_lst[i-1])
+            ext_copy.remove(ext_lst[i+1])
+    ext_lst=ext_copy.copy()
+print(rem_lst)
 
-print(Tree)
+set_ext=set(range(trees2.shape[1]))
+set_rem=set(rem_lst)
+kept_lst=list(set_ext.difference(set_rem))
+Tree=trees2[:,kept_lst]
+
+print(np.round(Tree,1))
 #print(trees2)
 
 # %% prepare drawing data sgement lengths
@@ -91,15 +98,42 @@ for i in range(T.shape[1]):
         T[id_zero,i]=Tree[-1,i]
     else:
         continue
-T
+print(np.round(T,2))
 
 # %% prepare drawing data angles 
-theta=np.random.uniform(20,30,10)
-angle=np.zeros((T.shape[0],T.shape[1]))
+theta=list(np.random.uniform(10,15,1000))
+theta0=list(np.random.uniform(10,15,1000))
+theta1=[]
+for ele in theta0:
+    theta1.extend([-ele/2,ele/2])
 
+T_f=T[~(T==0).all(1)]
+T_f=np.vstack((T_f,np.zeros((1,T_f.shape[1]))))
+angle=np.zeros((T_f.shape[0],T_f.shape[1]))
 
+# set up the first branch (shared by all paths)
+ang_ini=theta.pop()
+angle[0,:]=ang_ini
+size=T_f.shape[1]
+ 
 # %%
-angle[0,:]=theta[0]
-dif=np.diff(T,axis=1)
-print(dif)
+
+for i in range(1,T_f.shape[0]):
+    row_unique=list(set(T_f[i,:]))
+    try:
+        row_unique.remove(0)
+    except ValueError:
+        pass  # do nothing!
+
+    for unique_value in row_unique:
+        if  all((T_f[i+1,(T_f[i,:]==unique_value)]==0)):
+            the_pir=theta.pop()
+            angle[i,T_f[i,:]==unique_value]=np.array([the_pir/2,-the_pir/2])+np.array(angle[i-1,T_f[i,:]==unique_value])
+        else:
+            angle[i,T_f[i,:]==unique_value]=theta1.pop()+np.array(angle[i-1,T_f[i,:]==unique_value])
+print(np.round(angle,2))
+print(np.round(T_f,2))
+
+
+
 # %%
