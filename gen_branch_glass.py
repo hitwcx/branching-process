@@ -9,13 +9,15 @@ Created on Sat Nov 23 11:19:11 2019
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import reduce
+import pylab as pl
+from matplotlib import collections  as mc
 
 n_g = 6
 t_array = np.zeros(shape=(n_g+1,2**(n_g+1)-1), dtype=float, order='F')
 t=9
 #t_init = np.random.exponential(scale=4.0, size=1000)
 t_init = np.random.uniform(2,3,1000)
-
+np.random.seed(2)
 # %% randomly grow a full tree
 def gen_tree():
     #t_init = np.random.exponential(scale=3.0, size=1000)
@@ -101,6 +103,7 @@ for i in range(T.shape[1]):
 print(np.round(T,2))
 
 # %% prepare drawing data angles 
+theta_ini=list(np.random.uniform(0,360,1000))
 theta=list(np.random.uniform(10,15,1000))
 theta0=list(np.random.uniform(10,15,1000))
 theta1=[]
@@ -112,7 +115,7 @@ T_f=np.vstack((T_f,np.zeros((1,T_f.shape[1]))))
 angle=np.zeros((T_f.shape[0],T_f.shape[1]))
 
 # set up the first branch (shared by all paths)
-ang_ini=theta.pop()
+ang_ini=theta_ini.pop()
 angle[0,:]=ang_ini
 size=T_f.shape[1]
  
@@ -126,9 +129,12 @@ for i in range(1,T_f.shape[0]):
         pass  # do nothing!
 
     for unique_value in row_unique:
-        if  all((T_f[i+1,(T_f[i,:]==unique_value)]==0)):
+        if  all((T_f[i+1,(T_f[i,:]==unique_value)]==0)) and sum(T_f[i,:]==unique_value)%2==0:
             the_pir=theta.pop()
             angle[i,T_f[i,:]==unique_value]=np.array([the_pir/2,-the_pir/2])+np.array(angle[i-1,T_f[i,:]==unique_value])
+        elif all((T_f[i+1,(T_f[i,:]==unique_value)]==0)) and sum(T_f[i,:]==unique_value)%2==1:
+            theta_unq=theta.pop()
+            angle[i,T_f[i,:]==unique_value]=theta_unq/2*(-1)**i+np.array(angle[i-1,T_f[i,:]==unique_value])
         else:
             angle[i,T_f[i,:]==unique_value]=theta1.pop()+np.array(angle[i-1,T_f[i,:]==unique_value])
 print(np.round(angle,2))
@@ -136,4 +142,37 @@ print(np.round(T_f,2))
 
 
 
-# %%
+# %% write a function to combine angle and segment length matrix to produce coordinates for drawing plotting
+x_cor=np.zeros((T_f.shape[0],T_f.shape[1]))
+y_cor=x_cor.copy()
+angle_a=angle/360*np.pi
+
+#  prepare nodes data
+for i in range(1,T_f.shape[0]):
+    x_cor[i,:]=x_cor[i-1,:]+np.multiply(T_f[i-1,:],np.cos(angle_a[i-1,:]))
+    y_cor[i,:]=y_cor[i-1,:]+np.multiply(T_f[i-1,:],np.sin(angle_a[i-1,:]))
+#print(np.round(x_cor,2))
+#print(np.round(y_cor,2))
+#  plot the line segments
+#  define a function to create list of coordiantes
+def cormat_to_list(x_cor,y_cor):
+    pair_list=[]
+    for  j in range(x_cor.shape[1]):
+        tem=list(zip(x_cor[:,j],y_cor[:,j]))
+        pair_list.append([[tem[i],tem[i+1]] for i in range(x_cor.shape[0]-1)])
+    return reduce(lambda x,y: x+y,pair_list)
+all_branches=cormat_to_list(x_cor,y_cor)
+
+# the typical format of lines
+#lines = [[(0, 1), (1, 1)], [(2, 3), (3, 3)], [(1, 2), (1, 3)]]
+
+
+lc = mc.LineCollection(all_branches, linewidths=2)
+fig, ax = pl.subplots()
+ax.add_collection(lc)
+ax.autoscale()
+ax.margins(0.1)
+
+
+
+# %% write a overall function to drar the big pattern tree
