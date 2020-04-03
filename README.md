@@ -1,2 +1,2 @@
-# The glass branching process
-This is the branching process. To simulate the glass branching process.
+# The branching process simulation
+The script can simulate the branching process
